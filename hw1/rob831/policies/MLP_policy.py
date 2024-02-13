@@ -81,7 +81,8 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             observation = obs[None]
 
         with torch.no_grad():
-            actions = self.forward(ptu.to_numpy(observation)).sample().cpu().numpy()
+            actions = self.forward(ptu.from_numpy(observation)).sample()
+            actions = ptu.to_numpy(actions)
         return actions
 
     # update/train this policy
@@ -97,7 +98,7 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         if self.discrete:
             return distributions.Categorical(logits=self.logits_na(observation))
         else:
-            return distributions.Normal(self.mean_net(observation), torch.exp(self.logstd)[None])
+            return distributions.Normal(self.mean_net(observation), torch.exp(self.logstd))
 
 
 #####################################################
@@ -113,7 +114,10 @@ class MLPPolicySL(MLPPolicy):
             adv_n=None, acs_labels_na=None, qvals=None
     ):
         # TODO: update the policy and return the loss
-        loss = self.loss(self.forward(ptu.from_numpy(observations)).rsample(), ptu.from_numpy(actions))
+        # loss = self.loss(self.forward(ptu.from_numpy(observations)).rsample(), ptu.from_numpy(actions))
+        actions = torch.tensor(actions, dtype=torch.float).to(ptu.device)
+        pred_actions = self.forward(ptu.from_numpy(observations)).log_prob(actions)
+        loss = self.loss(pred_actions, torch.ones_like(pred_actions).to(ptu.device))
         
         self.optimizer.zero_grad()
         loss.backward()

@@ -78,6 +78,12 @@ class RL_Trainer(object):
 
         agent_class = self.params['agent_class']
         self.agent = agent_class(self.env, self.params['agent_params'])
+        
+        ## For part 4
+        self.Eval_AverageReturn = 0.
+        self.Eval_StdReturn = 0.
+        self.Eval_AverageReturn_list = []
+        self.Eval_StdReturn_list = []
 
     def run_training_loop(self, n_iter, collect_policy, eval_policy,
                         initial_expertdata=None, relabel_with_expert=False,
@@ -139,6 +145,10 @@ class RL_Trainer(object):
                 self.perform_logging(
                     itr, paths, eval_policy, train_video_paths, training_logs)
 
+                # perform the plot data
+                self.Eval_AverageReturn_list.append(self.Eval_AverageReturn)
+                self.Eval_StdReturn_list.append(self.Eval_StdReturn)
+                
                 if self.params['save_params']:
                     print('\nSaving agent params')
                     self.agent.save('{}/policy_itr_{}.pt'.format(self.params['logdir'], itr))
@@ -271,6 +281,10 @@ class RL_Trainer(object):
             last_log = training_logs[-1]  # Only use the last log for now
             logs.update(last_log)
 
+    
+            # perform the plot data
+            self.Eval_AverageReturn = np.mean(eval_returns)
+            self.Eval_StdReturn = np.std(eval_returns)
 
             if itr == 0:
                 self.initial_return = np.mean(train_returns)
