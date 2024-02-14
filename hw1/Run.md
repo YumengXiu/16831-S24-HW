@@ -1,3 +1,8 @@
+After unzip the zip file, first Go to the path of files:
+```
+cd hw1
+```
+
 For each section, run the following commands: 
 
 ## Behaviour Cloning
