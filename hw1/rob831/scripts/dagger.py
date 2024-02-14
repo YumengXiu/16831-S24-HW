@@ -4,8 +4,10 @@ import time
 from rob831.infrastructure.rl_trainer import RL_Trainer
 from rob831.agents.bc_agent import BCAgent
 from rob831.policies.loaded_gaussian_policy import LoadedGaussianPolicy
+
 import numpy as np
 import matplotlib.pyplot as plt
+
 
 class BC_Trainer(object):
 
@@ -91,9 +93,11 @@ def main():
     ##################################
 
     if args.do_dagger:
+        # Use this prefix when submitting. The auto-grader uses this prefix.
         logdir_prefix = 'q2_'
         assert args.n_iter>1, ('DAGGER needs more than 1 iteration (n_iter>1) of training, to iteratively query the expert and train (after 1st warmstarting from behavior cloning).')
     else:
+        # Use this prefix when submitting. The auto-grader uses this prefix.
         logdir_prefix = 'q1_'
         assert args.n_iter==1, ('Vanilla behavior cloning collects expert data just once (n_iter=1)')
 
@@ -112,35 +116,29 @@ def main():
     ### RUN TRAINING
     ###################
 
-    training_steps = []
-    eval_average_return = []
-    eval_std_return = []
-    init_step = 1000
-    while init_step <= 3000:
-        params['num_agent_train_steps_per_iter'] = init_step
-        trainer = BC_Trainer(params)
-        trainer.run_training_loop()
-        training_steps.append(init_step)
-        eval_average_return.append(trainer.rl_trainer.Eval_AverageReturn)
-        eval_std_return.append(trainer.rl_trainer.Eval_StdReturn)
-        init_step += 100
-    # print(training_steps)
-    # print(eval_average_return)
-    # print(eval_std_return)
+    trainer = BC_Trainer(params)
+    trainer.run_training_loop()
 
-    # draw the figure
+    iteration = np.arange(params['n_iter'])
+    bc_mean = [trainer.rl_trainer.Eval_AverageReturn_list[0]] * params['n_iter']
+    expert_mean = [trainer.rl_trainer.initial_return] * params['n_iter']
+
     fig = plt.figure()
-    plt.plot(training_steps, eval_average_return, label='Mean of return ')
-    plt.plot(training_steps, eval_std_return, label='Standard deviation of return')
-    # Plot data on the first subplot
-    plt.title('The Average and Standard Derivation of Return Over Step')
-    plt.xlabel('Training Steps', fontsize=12)
-    plt.ylabel('Evaluation Return', fontsize=12)
-    plt.xticks(np.arange(1000, 3000, 100))
+    plt.errorbar(iteration, trainer.rl_trainer.Eval_AverageReturn_list, yerr=trainer.rl_trainer.Eval_StdReturn_list, ecolor='black', label='DAgger')
+    plt.plot(iteration, bc_mean,'r--', label='Behavioral Cloning')
+    plt.plot(iteration, expert_mean, 'g--', label='Expert Policy')
+
+    plt.xlabel('Iteration', fontsize=12)
+    plt.ylabel('Evaluation Average Return', fontsize=12)
+    plt.xticks(np.arange(10))
     plt.legend(fontsize=12, loc=4)
 
-    plt.savefig('rob831/scripts/part_3.png', bbox_inches='tight')
+    if "Ant" in params['env_name']:
+        plt.savefig('rob831/scripts/Q2_2_Ant.png', bbox_inches='tight')
+    else:
+        plt.savefig('rob831/scripts/Q2_2_Humanoid.png', bbox_inches='tight')
     plt.show()
+
 
 if __name__ == "__main__":
     main()
